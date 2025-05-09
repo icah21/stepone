@@ -31,9 +31,13 @@ def load_last_angle():
 
 def motor_thread_func():
     global current_angle
+    object_was_previously_detected = False
+
     while True:
-        if ir_sensor.is_object_detected():
-            print("Object detected!")
+        detected = ir_sensor.is_object_detected()
+
+        if detected and not object_was_previously_detected:
+            print("New object detected!")
 
             # Go from 0 to 90
             current_angle = motor.go_to_angle(current_angle, 90)
@@ -54,8 +58,15 @@ def motor_thread_func():
             current_angle = motor.go_to_angle(current_angle, 0)
             save_current_angle(current_angle)
             time.sleep(2)
-        else:
-            time.sleep(0.1)
+
+            # Prevent retrigger until object is removed
+            object_was_previously_detected = True
+
+        elif not detected:
+            # Reset detection state when object leaves
+            object_was_previously_detected = False
+
+        time.sleep(0.1)
 
 # ---------- Startup ----------
 
