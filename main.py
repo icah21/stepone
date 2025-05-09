@@ -1,42 +1,43 @@
-# main.py
-import threading
 import time
-import RPi.GPIO as GPIO
-from stepmotor import StepperMotor
+import threading
+from stepper_motor import StepperMotor
 from ir_sensor import IRSensor
 
-# Pin configuration
-MOTOR_PINS = [17, 18, 27, 22]
-IR_PIN = 23
+# Initialize IR sensor and stepper motor
+ir_sensor = IRSensor(pin=17)
+motor = StepperMotor(in1=18, in2=23, in3=24, in4=25)
 
-motor = StepperMotor(MOTOR_PINS)
-sensor = IRSensor(IR_PIN)
+# Shared state
+current_angle = 0
 
-running_flag = threading.Event()
-
-def motor_thread():
+def motor_thread_func():
+    global current_angle
     while True:
-        running_flag.wait()
-        motor.execute_sequence()
-        running_flag.clear()
+        if ir_sensor.is_object_detected():
+            print("Object detected!")
 
-def sensor_thread():
-    while True:
-        if sensor.detected() and not running_flag.is_set():
-            print("Object detected! Starting motor sequence.")
-            running_flag.set()
-        time.sleep(0.2)
+            current_angle = motor.go_to_angle(current_angle, 90)
+            time.sleep(3)
+
+            current_angle = motor.go_to_angle(current_angle, 180)
+            time.sleep(2)
+
+            current_angle = motor.go_to_angle(current_angle, 270)
+            time.sleep(5)
+
+            current_angle = motor.go_to_angle(current_angle, 0)
+            time.sleep(2)
+        else:
+            time.sleep(0.1)
 
 try:
-    t1 = threading.Thread(target=motor_thread, daemon=True)
-    t2 = threading.Thread(target=sensor_thread, daemon=True)
-    t1.start()
-    t2.start()
+    motor_thread = threading.Thread(target=motor_thread_func)
+    motor_thread.daemon = True
+    motor_thread.start()
 
     while True:
-        time.sleep(1)
+        time.sleep(1)  # Keep main thread alive
 
 except KeyboardInterrupt:
-    print("Shutting down...")
+    print("Exiting...")
     motor.cleanup()
-    GPIO.cleanup()
