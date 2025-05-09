@@ -24,11 +24,11 @@ def motor_thread_func():
             current_angle = motor.go_to_angle(current_angle, 180)
             time.sleep(2)
 
-            # New: Go from 180 to 270
+            # Go from 180 to 270
             current_angle = motor.go_to_angle(current_angle, 270)
-            time.sleep(5)
+            time.sleep(3)
 
-            # Return from 270 to 0
+            # Return to 0
             current_angle = motor.go_to_angle(current_angle, 0)
             time.sleep(2)
         else:
