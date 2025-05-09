@@ -1,54 +1,55 @@
-import time
 import RPi.GPIO as GPIO
+import time
 
-# GPIO pin setup
+# Pin setup for ULN2003
 IN1 = 17
 IN2 = 18
 IN3 = 27
 IN4 = 22
 
-# Setup GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
+
 control_pins = [IN1, IN2, IN3, IN4]
 for pin in control_pins:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, 0)
 
-# Half-step sequence for 28BYJ-48
+# Half-step sequence (8 steps)
 halfstep_seq = [
-    [1,0,0,0],
-    [1,1,0,0],
-    [0,1,0,0],
-    [0,1,1,0],
-    [0,0,1,0],
-    [0,0,1,1],
-    [0,0,0,1],
-    [1,0,0,1]
+    [1, 0, 0, 0],
+    [1, 1, 0, 0],
+    [0, 1, 0, 0],
+    [0, 1, 1, 0],
+    [0, 0, 1, 0],
+    [0, 0, 1, 1],
+    [0, 0, 0, 1],
+    [1, 0, 0, 1]
 ]
 
-# Constants
-DEGREES_PER_STEP = 360 / 4096  # approx 0.0879
-STEPS_PER_90_DEGREES = int(90 / DEGREES_PER_STEP)  # ≈1024 steps
+STEPS_PER_REV = 4096           # 360 degrees = 4096 steps
+STEPS_PER_90 = STEPS_PER_REV // 4  # 90 degrees = 1024 steps
 
-def step_motor(steps, delay=0.001):
+def move_steps(steps, direction=1, delay=0.001):
+    """Move motor a number of steps. direction=1 for forward, -1 for reverse."""
+    seq = halfstep_seq if direction == 1 else list(reversed(halfstep_seq))
     for _ in range(steps):
-        for halfstep in halfstep_seq:
+        for halfstep in seq:
             for pin in range(4):
                 GPIO.output(control_pins[pin], halfstep[pin])
             time.sleep(delay)
 
 try:
     while True:
-        for i in range(4):  # 0 -> 90 -> 180 -> 270 -> 360
-            step_motor(STEPS_PER_90_DEGREES)
+        # Rotate forward in 90° increments with 3s pause
+        for _ in range(4):
+            move_steps(STEPS_PER_90, direction=1)
             time.sleep(3)
-        # Return to 0 (reverse)
-        for i in range(4 * len(halfstep_seq) * STEPS_PER_90_DEGREES // 8):
-            for halfstep in reversed(halfstep_seq):
-                for pin in range(4):
-                    GPIO.output(control_pins[pin], halfstep[pin])
-                time.sleep(0.001)
+
+        # Return to 0° in reverse (entire 360°)
+        move_steps(STEPS_PER_REV, direction=-1)
         time.sleep(1)
+
 except KeyboardInterrupt:
+    print("\nInterrupted. Cleaning up GPIO...")
     GPIO.cleanup()
