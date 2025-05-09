@@ -9,49 +9,51 @@ motor = StepperMotor(in1=18, in2=23, in3=24, in4=25)
 
 # Shared state
 current_angle = 0
+motion_lock = threading.Lock()
+new_trigger = False
 
-# Helper: interruptible delay
-def interruptible_sleep(seconds, check_interval=0.1):
-    for _ in range(int(seconds / check_interval)):
-        if not ir_sensor.is_object_detected():
-            return False  # interrupted
-        time.sleep(check_interval)
-    return True
-
-def motor_thread_func():
-    global current_angle
+# IR watcher thread
+def ir_watchdog():
+    global new_trigger
     while True:
         if ir_sensor.is_object_detected():
-            print("Object detected!")
+            with motion_lock:
+                new_trigger = True
+            time.sleep(0.1)  # Debounce delay
+        time.sleep(0.01)
 
-            while ir_sensor.is_object_detected():
-                current_angle = motor.go_to_angle(current_angle, 90)
-                if not interruptible_sleep(3):
-                    break
+# Motor motion thread
+def motor_thread_func():
+    global current_angle, new_trigger
+    while True:
+        if new_trigger:
+            with motion_lock:
+                new_trigger = False  # Reset the trigger
 
-                current_angle = motor.go_to_angle(current_angle, 180)
-                if not interruptible_sleep(2):
-                    break
+            print("Bean detected! Starting motion")
 
-                current_angle = motor.go_to_angle(current_angle, 270)
-                if not interruptible_sleep(5):
-                    break
+            # Perform motion steps
+            current_angle = motor.go_to_angle(current_angle, 90)
+            time.sleep(3)
 
-                current_angle = motor.go_to_angle(current_angle, 0)
-                if not interruptible_sleep(2):
-                    break
+            current_angle = motor.go_to_angle(current_angle, 180)
+            time.sleep(3)
 
-            print("Object no longer detected, waiting...")
-        else:
-            time.sleep(0.1)
+            current_angle = motor.go_to_angle(current_angle, 270)
+            time.sleep(3)
+
+            current_angle = motor.go_to_angle(current_angle, 0)
+            time.sleep(0.5)
+
+        time.sleep(0.01)
 
 try:
-    motor_thread = threading.Thread(target=motor_thread_func)
-    motor_thread.daemon = True
-    motor_thread.start()
+    # Start threads
+    threading.Thread(target=ir_watchdog, daemon=True).start()
+    threading.Thread(target=motor_thread_func, daemon=True).start()
 
     while True:
-        time.sleep(1)  # Keep main thread alive
+        time.sleep(1)
 
 except KeyboardInterrupt:
     print("Exiting...")
