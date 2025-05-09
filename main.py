@@ -16,17 +16,21 @@ def motor_thread_func():
         if ir_sensor.is_object_detected():
             print("Object detected!")
 
-            current_angle = motor.go_to_angle(current_angle, 90)
-            time.sleep(3)
+            # Repeat sequence while object is detected
+            while ir_sensor.is_object_detected():
+                current_angle = motor.go_to_angle(current_angle, 90)
+                time.sleep(2)
 
-            current_angle = motor.go_to_angle(current_angle, 180)
-            time.sleep(3)
+                current_angle = motor.go_to_angle(current_angle, 180)
+                time.sleep(2)
 
-            current_angle = motor.go_to_angle(current_angle, 270)
-            time.sleep(3)
+                current_angle = motor.go_to_angle(current_angle, 270)
+                time.sleep(2)
 
-            current_angle = motor.go_to_angle(current_angle, 0)
-            time.sleep(1)
+                current_angle = motor.go_to_angle(current_angle, 0)
+                time.sleep(0.5)
+
+            print("Object no longer detected, waiting...")
         else:
             time.sleep(0.1)
 
