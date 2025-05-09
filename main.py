@@ -9,52 +9,35 @@ motor = StepperMotor(in1=18, in2=23, in3=24, in4=25)
 
 # Shared state
 current_angle = 0
-motion_lock = threading.Lock()
-new_trigger = False
 
-# IR watcher thread
-def ir_watchdog():
-    global new_trigger
+def motor_thread_func():
+    global current_angle
     while True:
         if ir_sensor.is_object_detected():
-            with motion_lock:
-                new_trigger = True
-            time.sleep(0.1)  # Debounce delay
-        time.sleep(0.01)
+            print("Object detected!")
 
-# Motor motion thread
-def motor_thread_func():
-    global current_angle, new_trigger
-    while True:
-        if new_trigger:
-            with motion_lock:
-                new_trigger = False  # Reset the trigger
-
-            print("Bean detected! Starting motion")
-
-            # Perform motion steps
+            # Go from 0 to 90
             current_angle = motor.go_to_angle(current_angle, 90)
             time.sleep(3)
 
+            # Go from 90 to 180
             current_angle = motor.go_to_angle(current_angle, 180)
-            time.sleep(3)
+            time.sleep(2)
 
+            # New: Go from 180 to 270
             current_angle = motor.go_to_angle(current_angle, 270)
-            time.sleep(3)
+            time.sleep(5)
 
+            # Return from 270 to 0
             current_angle = motor.go_to_angle(current_angle, 0)
-            time.sleep(0.5)
-
-        time.sleep(0.01)
+            time.sleep(2)
+        else:
+            time.sleep(0.1)
 
 try:
-    # Start threads
-    threading.Thread(target=ir_watchdog, daemon=True).start()
-    threading.Thread(target=motor_thread_func, daemon=True).start()
-
-    while True:
-        time.sleep(1)
-
+    # Start motor thread
+    motor_thread = threading.Thread(target=motor_thread_func)
+    motor_thread.start()
 except KeyboardInterrupt:
     print("Exiting...")
-    motor.cleanup()
+    GPIO.cleanup()
