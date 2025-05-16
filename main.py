@@ -42,22 +42,22 @@ def motor_thread_func():
             # Go from 0 to 90
             current_angle = motor.go_to_angle(current_angle, 90)
             save_current_angle(current_angle)
-            time.sleep(3)
+            time.sleep(5)
 
             # Go from 90 to 180
             current_angle = motor.go_to_angle(current_angle, 180)
             save_current_angle(current_angle)
-            time.sleep(2)
+            time.sleep(5)
 
             # Go from 180 to 270
             current_angle = motor.go_to_angle(current_angle, 270)
             save_current_angle(current_angle)
-            time.sleep(3)
+            time.sleep(2)
 
             # Return to 0
             current_angle = motor.go_to_angle(current_angle, 0)
             save_current_angle(current_angle)
-            time.sleep(2)
+            time.sleep(1)
 
             # Prevent retrigger until object is removed
             object_was_previously_detected = True
