@@ -37,7 +37,7 @@ def motor_thread_func():
         detected = ir_sensor.is_object_detected()
 
         if detected and not object_was_previously_detected:
-            print("New object detected!")
+            print("hand detected!")
 
             # Go from 0 to 90
             current_angle = motor.go_to_angle(current_angle, 90)
